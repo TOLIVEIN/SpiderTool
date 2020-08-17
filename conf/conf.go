@@ -14,9 +14,9 @@ type RedisConf struct {
 	Address  string `yaml:"address"`
 	Password string `yaml:"password"`
 	Key string `yaml:"key"`
-	MaxScore string `yaml:"maxScore"`
-	MinScore string `yaml:"minScore"`
-	InitialScore string `yaml:"initialScore"`
+	MaxScore float64 `yaml:"maxScore"`
+	MinScore float64 `yaml:"minScore"`
+	InitialScore float64 `yaml:"initialScore"`
 }
 
 func (c *Config) GetConfig() *Config {

@@ -31,19 +31,10 @@ func Get66ip() {
 
 	collector.OnHTML("#main tr:first-child~tr td:first-child", func(element *colly.HTMLElement) {
 		ips = append(ips, element.Text)
-		//ip := element.Text
-		//print(ip)
-		//fmt.Println(TestProxy(fmt.Sprintf("http://%s", ip)))
-		//fmt.Println(fmt.Sprintf("IP地址：%s", ip))
-		//fmt.Println("--------------------------------")
+
 	})
 	collector.OnHTML("#main tr:first-child~tr td:nth-child(2)", func(element *colly.HTMLElement) {
 		ports = append(ports, element.Text)
-		//ip := element.Text
-		//print(ip)
-		//fmt.Println(TestProxy(fmt.Sprintf("http://%s", ip)))
-		//fmt.Println(fmt.Sprintf("IP地址：%s", ip))
-		//fmt.Println("--------------------------------")
 	})
 
 	collector.OnScraped(func(response *colly.Response) {
@@ -66,8 +57,6 @@ func Get66ip() {
 		collector.Visit(url)
 	}
 	fmt.Println(fmt.Sprintf("代理地址：%s", proxies))
-
-	//fmt.Println(TestProxy(fmt.Sprintf("http://101.200.216.231")))
 
 }
 
@@ -93,24 +82,15 @@ func GetKuaidaili() {
 
 	collector.OnHTML("[data-title=\"IP\"]", func(element *colly.HTMLElement) {
 		ips = append(ips, element.Text)
-		//ip := element.Text
-		//print(ip)
-		//fmt.Println(TestProxy(fmt.Sprintf("http://%s", ip)))
-		//fmt.Println(fmt.Sprintf("IP地址：%s", ip))
-		//fmt.Println("--------------------------------")
 	})
 	collector.OnHTML("[data-title=\"PORT\"]", func(element *colly.HTMLElement) {
 		ports = append(ports, element.Text)
-		//ip := element.Text
-		//print(ip)
-		//fmt.Println(TestProxy(fmt.Sprintf("http://%s", ip)))
-		//fmt.Println(fmt.Sprintf("IP地址：%s", ip))
-		//fmt.Println("--------------------------------")
 	})
 
 	collector.OnScraped(func(response *colly.Response) {
 		for i := 0; i < len(ips); i++ {
 			proxy := fmt.Sprintf("%s:%s", ips[i], ports[i])
+			fmt.Println(proxy)
 			AddProxy(client, config, proxy)
 			//_, testResult := TestProxy(proxy)
 			//if testResult == http.StatusOK {
@@ -120,6 +100,7 @@ func GetKuaidaili() {
 		ips = ips[:0]
 		ports = ports[:0]
 
+
 		//fmt.Println(fmt.Sprintf("代理地址：%s", proxies))
 	})
 
@@ -128,8 +109,8 @@ func GetKuaidaili() {
 		collector.Visit(url)
 	}
 	fmt.Println(fmt.Sprintf("代理地址：%s", proxies))
+	fmt.Println(All(client, config))
 
-	//fmt.Println(TestProxy(fmt.Sprintf("http://101.200.216.231")))
 }
 
 func TestProxy(proxyAddr string) (ip string, status int) {
