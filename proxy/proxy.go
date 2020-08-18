@@ -100,7 +100,6 @@ func GetKuaidaili() {
 		ips = ips[:0]
 		ports = ports[:0]
 
-
 		//fmt.Println(fmt.Sprintf("代理地址：%s", proxies))
 	})
 
@@ -108,12 +107,18 @@ func GetKuaidaili() {
 		url := fmt.Sprintf("https://www.kuaidaili.com/free/inha/%s", strconv.Itoa(page))
 		collector.Visit(url)
 	}
-	fmt.Println(fmt.Sprintf("代理地址：%s", proxies))
-	fmt.Println(All(client, config))
+	//fmt.Println(fmt.Sprintf("代理地址：%s", proxies))
+	proxies = All(client, config)
+	//fmt.Println(All(client, config))
+	for index, proxy := range proxies {
+		done := make(chan bool)
+		go TestProxy(proxy, done)
+		fmt.Printf("测试第%d个代理%t", index, <-done)
+	}
 
 }
 
-func TestProxy(proxyAddr string) (ip string, status int) {
+func TestProxy(proxyAddr string, done chan bool) (ip string, status int) {
 	var testUrl string
 	if strings.Contains(proxyAddr, "https") {
 		testUrl = "https://icanhazip.com"
@@ -122,18 +127,17 @@ func TestProxy(proxyAddr string) (ip string, status int) {
 	}
 
 	proxy, err := url.Parse(proxyAddr)
-	 //if err != nil {
-		// fmt.Println(fmt.Sprintf("代理：%s", err))
-	 //
-	 //} else {
-	 //	fmt.Println(fmt.Sprintf("代理为：%s", proxy))
-	 //}
+	//if err != nil {
+	// fmt.Println(fmt.Sprintf("代理：%s", err))
+	//
+	//} else {
+	//	fmt.Println(fmt.Sprintf("代理为：%s", proxy))
+	//}
 	transport := &http.Transport{
 		Proxy:                 http.ProxyURL(proxy),
 		MaxIdleConnsPerHost:   10,
 		ResponseHeaderTimeout: time.Second * time.Duration(5),
 	}
-
 
 	httpClient := &http.Client{
 		Timeout:   time.Second * 10,
@@ -151,10 +155,12 @@ func TestProxy(proxyAddr string) (ip string, status int) {
 	//
 	if res.StatusCode != http.StatusOK {
 		fmt.Println(fmt.Sprintf("测试错误：%s", err))
+		done <- false
 		return
 	}
-	fmt.Println(fmt.Sprintf("测试代理成功：%s，%s", proxy, res))
 
+	fmt.Println(fmt.Sprintf("测试代理成功：%s，%d", proxyAddr, res.StatusCode))
+	done <- true
 
 	//
 	//defer res.Body.Close()
