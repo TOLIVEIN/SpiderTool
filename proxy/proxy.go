@@ -1,12 +1,15 @@
 package proxy
 
 import (
+	"SpiderTool/conf"
 	"fmt"
+	"github.com/go-redis/redis"
 	"github.com/gocolly/colly"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -64,8 +67,9 @@ func GetKuaidaili() {
 	collector := colly.NewCollector()
 	var ips []string
 	var ports []string
-	var proxies []string
+	//var proxies []string
 	client, config := RedisClient()
+	var wg sync.WaitGroup
 
 	collector.OnRequest(func(request *colly.Request) {
 		fmt.Println(fmt.Sprintf("请求页面 %s\n", request.URL))
@@ -90,13 +94,22 @@ func GetKuaidaili() {
 	collector.OnScraped(func(response *colly.Response) {
 		for i := 0; i < len(ips); i++ {
 			proxy := fmt.Sprintf("%s:%s", ips[i], ports[i])
-			fmt.Println(proxy)
-			AddProxy(client, config, proxy)
+			//fmt.Println(proxy)
+			wg.Add(1)
+			//done := make(chan bool)
+			fmt.Printf("测试第%d个代理。。。\n", i)
+			go TestProxy(proxy, &wg, client, config)
+			//AddProxy(client, config, proxy)
+			//if <-done == true {
+			//	AddProxy(client, config, proxy)
+			//}
+
 			//_, testResult := TestProxy(proxy)
 			//if testResult == http.StatusOK {
 			//	proxies = append(proxies, proxy)
 			//}
 		}
+		wg.Wait()
 		ips = ips[:0]
 		ports = ports[:0]
 
@@ -108,17 +121,17 @@ func GetKuaidaili() {
 		collector.Visit(url)
 	}
 	//fmt.Println(fmt.Sprintf("代理地址：%s", proxies))
-	proxies = All(client, config)
-	//fmt.Println(All(client, config))
-	for index, proxy := range proxies {
-		done := make(chan bool)
-		go TestProxy(proxy, done)
-		fmt.Printf("测试第%d个代理%t", index, <-done)
-	}
+	//proxies = All(client, config)
+	////fmt.Println(All(client, config))
+	//for index, proxy := range proxies {
+	//	done := make(chan bool)
+	//	go TestProxy(proxy, done, &wg)
+	//	fmt.Printf("测试第%d个代理%t", index, <-done)
+	//}
 
 }
 
-func TestProxy(proxyAddr string, done chan bool) (ip string, status int) {
+func TestProxy(proxyAddr string, wg *sync.WaitGroup, clinet *redis.Client, config *conf.Config) (ip string, status int) {
 	var testUrl string
 	if strings.Contains(proxyAddr, "https") {
 		testUrl = "https://icanhazip.com"
@@ -126,6 +139,7 @@ func TestProxy(proxyAddr string, done chan bool) (ip string, status int) {
 		testUrl = "http://icanhazip.com"
 	}
 
+	defer wg.Done()
 	proxy, err := url.Parse(proxyAddr)
 	//if err != nil {
 	// fmt.Println(fmt.Sprintf("代理：%s", err))
@@ -155,12 +169,15 @@ func TestProxy(proxyAddr string, done chan bool) (ip string, status int) {
 	//
 	if res.StatusCode != http.StatusOK {
 		fmt.Println(fmt.Sprintf("测试错误：%s", err))
-		done <- false
+		//done <- false
+		return
+	}else {
+		AddProxy(clinet, config, proxyAddr)
+		fmt.Println(fmt.Sprintf("测试代理成功：%s已添加，%d", proxyAddr, res.StatusCode))
 		return
 	}
 
-	fmt.Println(fmt.Sprintf("测试代理成功：%s，%d", proxyAddr, res.StatusCode))
-	done <- true
+	//done <- true
 
 	//
 	//defer res.Body.Close()
