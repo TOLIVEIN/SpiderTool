@@ -29,13 +29,9 @@ func RedisClient() (cli *redis.Client, con *conf.Config) {
 	return client, config
 }
 
-func AddProxy(client *redis.Client, config *conf.Config, proxy string) {
+func Add(client *redis.Client, config *conf.Config, proxy string) {
 	score := config.RedisConf.InitialScore
 	client.ZAdd(config.RedisConf.Key, redis.Z{Score: score, Member: proxy})
-
-	//Decrease(client, config, proxy)
-	//}
-	//client.ZAdd()
 }
 
 func Decrease(client *redis.Client, config *conf.Config, proxy string) {
@@ -51,7 +47,7 @@ func Decrease(client *redis.Client, config *conf.Config, proxy string) {
 }
 
 func Max(client *redis.Client, config *conf.Config, proxy string) {
-	fmt.Printf("代理：%s可用，设置分数为：%s", proxy, config.RedisConf.MaxScore)
+	fmt.Printf("代理：%s可用，设置分数为：%f\n", proxy, config.RedisConf.MaxScore)
 	client.ZAdd(config.RedisConf.Key, redis.Z{Score: config.RedisConf.MaxScore, Member: proxy})
 }
 

@@ -17,8 +17,10 @@ func Get66ip() {
 	collector := colly.NewCollector()
 	var ips []string
 	var ports []string
-	var proxies []string
+	//var proxies []string
 	client, config := RedisClient()
+	var wg sync.WaitGroup
+
 
 	collector.OnRequest(func(request *colly.Request) {
 		fmt.Println(fmt.Sprintf("请求页面 %s\n", request.URL))
@@ -43,23 +45,25 @@ func Get66ip() {
 	collector.OnScraped(func(response *colly.Response) {
 		for i := 0; i < len(ips); i++ {
 			proxy := fmt.Sprintf("%s:%s", ips[i], ports[i])
-			AddProxy(client, config, proxy)
-			//_, testResult := TestProxy(proxy)
-			//if testResult == http.StatusOK {
-			//	proxies = append(proxies, proxy)
+			wg.Add(1)
+			//done := make(chan bool)
+			fmt.Printf("测试第%d个代理。。。\n", i)
+			go TestProxy(proxy, &wg, client, config)
+			//Add(client, config, proxy)
+			//if <-done == true {
+			//	AddProxy(client, config, proxy)
 			//}
 		}
+		wg.Wait()
 		ips = ips[:0]
 		ports = ports[:0]
-
-		//fmt.Println(fmt.Sprintf("代理地址：%s", proxies))
 	})
 
 	for page := 1; page <= 10; page++ {
 		url := fmt.Sprintf("http://www.66ip.cn/%s.html", strconv.Itoa(page))
 		collector.Visit(url)
 	}
-	fmt.Println(fmt.Sprintf("代理地址：%s", proxies))
+	//fmt.Println(fmt.Sprintf("代理地址：%s", proxies))
 
 }
 
@@ -94,26 +98,18 @@ func GetKuaidaili() {
 	collector.OnScraped(func(response *colly.Response) {
 		for i := 0; i < len(ips); i++ {
 			proxy := fmt.Sprintf("%s:%s", ips[i], ports[i])
-			//fmt.Println(proxy)
 			wg.Add(1)
 			//done := make(chan bool)
 			fmt.Printf("测试第%d个代理。。。\n", i)
 			go TestProxy(proxy, &wg, client, config)
-			//AddProxy(client, config, proxy)
+			//Add(client, config, proxy)
 			//if <-done == true {
 			//	AddProxy(client, config, proxy)
-			//}
-
-			//_, testResult := TestProxy(proxy)
-			//if testResult == http.StatusOK {
-			//	proxies = append(proxies, proxy)
 			//}
 		}
 		wg.Wait()
 		ips = ips[:0]
 		ports = ports[:0]
-
-		//fmt.Println(fmt.Sprintf("代理地址：%s", proxies))
 	})
 
 	for page := 1; page <= 10; page++ {
@@ -157,9 +153,9 @@ func TestProxy(proxyAddr string, wg *sync.WaitGroup, clinet *redis.Client, confi
 		Timeout:   time.Second * 10,
 		Transport: transport,
 	}
-	//
-	//begin := time.Now()
-	//
+
+	begin := time.Now()
+
 	res, err := httpClient.Get(testUrl)
 
 	if err != nil {
@@ -172,8 +168,9 @@ func TestProxy(proxyAddr string, wg *sync.WaitGroup, clinet *redis.Client, confi
 		//done <- false
 		return
 	}else {
-		AddProxy(clinet, config, proxyAddr)
-		fmt.Println(fmt.Sprintf("测试代理成功：%s已添加，%d", proxyAddr, res.StatusCode))
+		Max(clinet, config, proxyAddr)
+		delay := int(time.Now().Sub(begin).Nanoseconds() / 1000 / 1000)
+		fmt.Println(fmt.Sprintf("测试代理成功：%s已添加，响应代码：%d，延迟：%dms", proxyAddr, res.StatusCode, delay))
 		return
 	}
 
@@ -181,7 +178,6 @@ func TestProxy(proxyAddr string, wg *sync.WaitGroup, clinet *redis.Client, confi
 
 	//
 	//defer res.Body.Close()
-	//delay := int(time.Now().Sub(begin).Nanoseconds() / 1000 / 1000)
 	//
 	//if res.StatusCode != http.StatusOK {
 	//	log.Println(err)
